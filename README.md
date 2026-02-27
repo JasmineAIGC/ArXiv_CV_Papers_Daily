@@ -8,6 +8,8 @@ This project automatically fetches, analyzes, and organizes the latest Computer 
 
 
 ## 2026.02
+* [2026-02-26.md](./data/2026-02/2026-02-26.md)
+* [2026-02-25.md](./data/2026-02/2026-02-25.md)
 * [2026-02-24.md](./data/2026-02/2026-02-24.md)
 * [2026-02-23.md](./data/2026-02/2026-02-23.md)
 * [2026-02-22.md](./data/2026-02/2026-02-22.md)
