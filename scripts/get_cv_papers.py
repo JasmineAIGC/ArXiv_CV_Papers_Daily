@@ -15,7 +15,7 @@ import traceback
 import arxiv
 
 # 查询参数设置
-QUERY_DAYS_AGO = 1           # 查询几天前的论文，0=今天，1=昨天，2=前天
+QUERY_DAYS_AGO = 3           # 查询几天前的论文，0=今天，1=昨天，2=前天
 MAX_RESULTS = 300           # 最大返回论文数量
 MAX_WORKERS = 4            # 并行处理的最大线程数
 
@@ -202,7 +202,7 @@ def df_to_markdown_table(papers_by_category: dict, target_date) -> str:
                     paper['title'],
                     paper.get('title_zh', ''),
                     paper['authors'],
-                    f"<{paper['pdf_url']}>",
+                    f"[PDF]({paper['pdf_url']})",
                     code_and_contribution,
                 ]
                 values = [str(v).replace('\n', ' ').replace('|', '&#124;') for v in values]
@@ -263,7 +263,7 @@ def df_to_markdown_detailed(papers_by_category: dict, target_date) -> str:
                 # 作者（已经是格式化好的字符串）
                 markdown += f'**Authors:** {paper["authors"]}<br />\n'
                 # PDF链接
-                markdown += f'**PDF:** <{paper["pdf_url"]}><br />\n'
+                markdown += f'**PDF:** [PDF]({paper["pdf_url"]})<br />\n'
 
                 # 合并代码链接和精简后的核心贡献
                 markdown += '**Code/Contribution:**\n'
