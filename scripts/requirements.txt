@@ -2,7 +2,7 @@ arxiv==1.4.8
 python-dateutil==2.8.2
 requests==2.31.0
 beautifulsoup4==4.12.2
-concurrent-log-handler==0.9.24
 tqdm==4.66.1
 lxml==4.9.3
 urllib3==2.1.0
+nltk>=3.8.1

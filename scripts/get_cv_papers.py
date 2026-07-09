@@ -14,6 +14,9 @@ from typing import Dict, List, Tuple, Optional
 import traceback
 import arxiv
 
+# 兼容 arxiv 1.4.8 的 HTTP 重定向行为，强制使用 HTTPS 查询端点
+ARXIV_API_URL_FORMAT = "https://export.arxiv.org/api/query?{}"
+
 # 查询参数设置
 QUERY_DAYS_AGO = 1           # 查询几天前的论文，0=今天，1=昨天，2=前天
 MAX_RESULTS = 300           # 最大返回论文数量
@@ -25,6 +28,13 @@ try:
     from nltk.stem import PorterStemmer, WordNetLemmatizer
     from nltk.tokenize import word_tokenize
     from nltk.corpus import stopwords
+    
+    # 设置NLTK数据目录为项目scripts目录下的nltk_data
+    nltk_data_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'nltk_data')
+    # 确保目录存在
+    os.makedirs(nltk_data_dir, exist_ok=True)
+    # 添加到NLTK数据搜索路径最前面，优先用项目目录的数据
+    nltk.data.path.insert(0, nltk_data_dir)
     
     # 创建标志文件路径
     nltk_flag_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), '.nltk_data_downloaded')
@@ -47,10 +57,10 @@ try:
         
         # 只下载缺失的数据
         if needed_data:
-            print(f"正在下载缺失的NLTK数据文件: {', '.join(needed_data)}")
+            print(f"正在下载缺失的NLTK数据文件到: {nltk_data_dir}")
             for data_name in needed_data:
                 print(f"开始下载 '{data_name}'...")
-                download_result = nltk.download(data_name, quiet=False)
+                download_result = nltk.download(data_name, download_dir=nltk_data_dir, quiet=False)
                 print(f"下载 '{data_name}' 结果: {download_result}")
             print("NLTK数据文件下载完成")
         
@@ -60,8 +70,8 @@ try:
             print("NLTK数据 'punkt_tab' 已存在")
         except LookupError:
             print("开始下载 'punkt_tab'...")
-            download_result = nltk.download('punkt', quiet=False)  # 重新下载 punkt可能会包含punkt_tab
-            print(f"下载 'punkt' 结果: {download_result}")
+            download_result = nltk.download('punkt_tab', download_dir=nltk_data_dir, quiet=False)
+            print(f"下载 'punkt_tab' 结果: {download_result}")
         
         # 创建标志文件表示数据已下载
         with open(nltk_flag_file, 'w') as f:
@@ -1177,6 +1187,7 @@ def get_cv_papers():
             delay_seconds=0.5,  # 请求间隔3秒
             num_retries=5    # 失败重试5次
         )
+        client.query_url_format = ARXIV_API_URL_FORMAT
 
         # 构建查询
         search = arxiv.Search(
@@ -1197,7 +1208,12 @@ def get_cv_papers():
         with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
             # 创建进度条
             print("\n🔍 开始获取论文...")
-            results = client.results(search)
+            try:
+                results = client.results(search)
+            except Exception as e:
+                print(f"⚠️ arXiv 首次请求失败，尝试使用 HTTPS 端点重试: {e}")
+                client.query_url_format = ARXIV_API_URL_FORMAT
+                results = client.results(search)
             
             # 创建总进度条
             total_pbar = tqdm(
