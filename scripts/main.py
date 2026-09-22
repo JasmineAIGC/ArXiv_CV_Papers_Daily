@@ -4,6 +4,7 @@
 """
 import os
 import re
+import time
 import traceback
 from datetime import datetime, timedelta
 from collections import defaultdict
@@ -11,6 +12,9 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import arxiv
 from tqdm import tqdm
+
+import feedparser
+import requests
 
 from categories_config import CATEGORY_KEYWORDS
 from classifier import get_category_by_keywords
@@ -29,6 +33,33 @@ from config import (
 
 # 兼容 arxiv 1.4.8 的 HTTP 重定向行为，强制使用 HTTPS 查询端点
 ARXIV_API_URL_FORMAT = "https://export.arxiv.org/api/query?{}"
+
+# ---------------------------------------------------------------------------
+# 修复 arXiv API HTTP 406 问题：
+# arxiv 库底层通过 feedparser → urllib 发请求，urllib 的请求特征
+# （HTTP/1.1 + Connection: close + 无 Accept 头）会被 export.arxiv.org
+# 的反爬层拒绝，返回 HTTP 406 Not Acceptable。
+# 这里拦截发往 arXiv 的 feed 请求，改用 requests（默认 keep-alive + 标准头）
+# 抓取后再交给 feedparser 解析。
+# ---------------------------------------------------------------------------
+_ARXIV_FEED_URL_PREFIX = "https://export.arxiv.org/api/query"
+_ORIGINAL_FEEDPARSER_PARSE = feedparser.parse
+
+
+def _parse_arxiv_feed(url, *args, **kwargs):
+    if isinstance(url, str) and url.startswith(_ARXIV_FEED_URL_PREFIX):
+        resp = requests.get(
+            url,
+            headers={"User-Agent": "ArXivCV-Daily/1.0"},
+            timeout=60,
+        )
+        feed = _ORIGINAL_FEEDPARSER_PARSE(resp.content, *args, **kwargs)
+        feed["status"] = resp.status_code
+        return feed
+    return _ORIGINAL_FEEDPARSER_PARSE(url, *args, **kwargs)
+
+
+feedparser.parse = _parse_arxiv_feed
 
 
 def extract_github_link(text: str):
@@ -240,7 +271,8 @@ def get_cv_papers():
             try:
                 results = client.results(search)
             except Exception as e:
-                print(f"⚠️ arXiv 首次请求失败，直接重试: {e}")
+                print(f"⚠️ arXiv 首次请求失败，等待 10 秒后重试: {e}")
+                time.sleep(10)
                 results = client.results(search)
 
             # 创建总进度条

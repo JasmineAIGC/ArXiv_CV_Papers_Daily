@@ -5,7 +5,7 @@ An automated system for fetching, analyzing, and organizing the latest computer 
 ## Features
 
 - **Automated Paper Retrieval**: Automatically fetches the latest CV papers from ArXiv
-- **AI-Powered Analysis**: Uses Doubao / ChatGLM for intelligent paper categorization and analysis
+- **AI-Powered Analysis**: Uses Doubao / ChatGLM / DeepSeek for intelligent paper categorization and analysis
 - **Bilingual Support**: Provides paper titles in both English and Chinese
 - **Code Link Detection**: Automatically extracts GitHub repository links
 - **Organized Output**: Generates well-structured Markdown reports
@@ -21,7 +21,8 @@ ArXiv_CV_Papers_Daily/
 │   ├── llm_helper.py         # LLM 助手：翻译、贡献分析、分类仲裁
 │   ├── llm_clients/          # LLM 客户端封装
 │   │   ├── chatglm_client.py # ChatGLM 客户端
-│   │   └── doubao_client.py  # 豆包客户端
+│   │   ├── doubao_client.py  # 豆包客户端
+│   │   └── deepseek_client.py # DeepSeek 客户端
 │   ├── classifier.py         # 关键词分类与子类别判定
 │   ├── text_utils.py         # NLTK 初始化与文本预处理
 │   ├── markdown_output.py    # Markdown 生成与保存
@@ -41,7 +42,7 @@ ArXiv_CV_Papers_Daily/
 
 - Python 3.8+
 - Dependencies listed in `requirements.txt`
-- Doubao 或 ChatGLM API key（配置在 `scripts/.env`）
+- Doubao / ChatGLM / DeepSeek API key（配置在 `scripts/.env`）
 - Stable internet connection
 
 ## Installation
@@ -57,7 +58,7 @@ pip install -r requirements.txt
 
 非敏感配置集中在 `config.py`（可安全提交到 Git），所有参数均会生效：
 
-- `LLM_PROVIDER` / `DOUBAO_MODEL` / `DOUBAO_BASE_URL` / `CHATGLM_MODEL` / `CHATGLM_BASE_URL` / `CHATGLM_ENABLE_THINKING`：LLM 提供商与模型
+- `LLM_PROVIDER` / `DOUBAO_MODEL` / `DOUBAO_BASE_URL` / `CHATGLM_MODEL` / `CHATGLM_BASE_URL` / `CHATGLM_ENABLE_THINKING` / `DEEPSEEK_MODEL` / `DEEPSEEK_BASE_URL` / `DEEPSEEK_ENABLE_THINKING`：LLM 提供商与模型
 - `LLM_TIMEOUT` / `LLM_MAX_RETRIES` / `LLM_RETRY_DELAY` / `LLM_MAX_WORKERS`：LLM 请求通用参数
 - `TRANSLATE_*` / `ANALYZE_*` / `DECIDE_*`：各任务生成参数（temperature / max_tokens / top_p / 重试次数）
 - `ENABLE_TITLE_TRANSLATION` / `ENABLE_CONTRIBUTION_ANALYSIS` / `ENABLE_LLM_ARBITRATION` / `ENABLE_DETAILED_OUTPUT`：功能开关
@@ -73,6 +74,7 @@ pip install -r requirements.txt
 ```bash
 DOUBAO_API_KEY=your_doubao_api_key_here
 CHATGLM_API_KEY=your_chatglm_api_key_here
+DEEPSEEK_API_KEY=your_deepseek_api_key_here
 ```
 同名环境变量优先级高于 `.env` 文件。
 

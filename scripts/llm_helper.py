@@ -1,4 +1,4 @@
-"""LLM助手：论文标题翻译、核心贡献分析与分类仲裁（支持豆包和ChatGLM双模型）"""
+"""LLM助手：论文标题翻译、核心贡献分析与分类仲裁（支持豆包、GLM（智谱）和 DeepSeek）"""
 import time
 from typing import Tuple, List, Dict
 
@@ -12,7 +12,7 @@ from config import (
 )
 
 class LLMHelper:
-    """LLM助手类（支持豆包和ChatGLM双模型）"""
+    """LLM助手类（支持豆包、GLM（智谱）和 DeepSeek）"""
     
     def __init__(self):
         """根据配置初始化对应的LLM客户端"""
@@ -26,7 +26,7 @@ class LLMHelper:
             self.client = DoubaoClient(api_key=DOUBAO_API_KEY, model=DOUBAO_MODEL, base_url=DOUBAO_BASE_URL)
             self.model = DOUBAO_MODEL
             print(f"🤖 使用豆包大模型: {self.model}")
-        elif self.provider == "chatglm":
+        elif self.provider in ("glm", "chatglm"):
             from llm_clients.chatglm_client import ChatGLMClient
             from config import CHATGLM_API_KEY, CHATGLM_MODEL, CHATGLM_BASE_URL, CHATGLM_ENABLE_THINKING
             if not CHATGLM_API_KEY:
@@ -34,9 +34,18 @@ class LLMHelper:
             self.client = ChatGLMClient(api_key=CHATGLM_API_KEY, model=CHATGLM_MODEL, base_url=CHATGLM_BASE_URL)
             self.enable_thinking = CHATGLM_ENABLE_THINKING
             self.model = CHATGLM_MODEL
-            print(f"🤖 使用ChatGLM模型: {self.model}")
+            print(f"🤖 使用智谱GLM模型: {self.model}")
+        elif self.provider == "deepseek":
+            from llm_clients.deepseek_client import DeepSeekClient
+            from config import DEEPSEEK_API_KEY, DEEPSEEK_MODEL, DEEPSEEK_BASE_URL, DEEPSEEK_ENABLE_THINKING
+            if not DEEPSEEK_API_KEY:
+                raise ValueError("请在 .env 中设置DEEPSEEK_API_KEY")
+            self.client = DeepSeekClient(api_key=DEEPSEEK_API_KEY, model=DEEPSEEK_MODEL, base_url=DEEPSEEK_BASE_URL)
+            self.enable_thinking = DEEPSEEK_ENABLE_THINKING
+            self.model = DEEPSEEK_MODEL
+            print(f"🤖 使用DeepSeek模型: {self.model}")
         else:
-            raise ValueError(f"不支持的LLM提供商: {LLM_PROVIDER}，请在config.py中设置LLM_PROVIDER为'doubao'或'chatglm'")
+            raise ValueError(f"不支持的LLM提供商: {LLM_PROVIDER}，请在config.py中设置LLM_PROVIDER为'doubao'、'glm'或'deepseek'")
 
     def _call_llm(self, **request_params):
         """统一注入超时/重试等通用参数后调用模型
@@ -50,6 +59,9 @@ class LLMHelper:
         request_params.setdefault("timeout", LLM_TIMEOUT)
         request_params.setdefault("max_retries", LLM_MAX_RETRIES)
         request_params.setdefault("retry_delay", LLM_RETRY_DELAY)
+        # 对于 DeepSeek，根据配置设置 thinking 参数（默认关闭，避免思考模式消耗大量 token 导致输出为空）
+        if self.provider == "deepseek" and "thinking" not in request_params:
+            request_params["thinking"] = {"type": "enabled" if self.enable_thinking else "disabled"}
         return self.client.chat.completions.create(**request_params)
 
     def translate_title(self, title: str, abstract: str = "") -> str:
@@ -85,7 +97,7 @@ class LLMHelper:
                 }
                 
                 # 对于 glm-4.7 模型，根据配置设置 thinking 参数
-                if self.provider == "chatglm" and "glm-4.7" in self.model:
+                if self.provider in ("glm", "chatglm") and "glm-4.7" in self.model:
                     if self.enable_thinking:
                         request_params["thinking"] = {"type": "enabled"}
                     else:
@@ -209,7 +221,7 @@ class LLMHelper:
 
 请直接返回最合适的类别名称，不要有任何解释或额外文本。只返回类别名称。"""
             
-            # 调用 ChatGLM 进行分类决策（参数来自 config.py）
+            # 调用 LLM 进行分类决策（参数来自 config.py）
             response = self._call_llm(
                 model=self.model,
                 messages=[{"role": "user", "content": prompt}],

@@ -26,27 +26,37 @@ def _load_dotenv():
 _load_dotenv()
 
 # =============================================================================
-# LLM 提供商配置
-# 支持 "doubao"（豆包）或 "chatglm"（智谱ChatGLM）
+# LLM 提供商配置 —— 开关参数：控制使用哪个大模型
+# 在 .env 中设置 LLM_PROVIDER（同名环境变量优先级高于 .env）
+# 可选值: "doubao"（豆包）、"glm"（智谱 GLM，旧名 "chatglm" 同样可用）或 "deepseek"（DeepSeek）
 # =============================================================================
-LLM_PROVIDER = "doubao"  # 或 "chatglm"
+LLM_PROVIDER = os.environ.get("LLM_PROVIDER", "doubao")  # 在 .env 中改为 "glm" 或 "deepseek" 切换模型
 
 # -----------------------------------------------------------------------------
 # 豆包（ByteDance Doubao）配置
 # 仅在 LLM_PROVIDER = "doubao" 时生效
 # -----------------------------------------------------------------------------
 DOUBAO_API_KEY = os.environ.get("DOUBAO_API_KEY", "")  # 豆包 API Key（在 .env 中配置）
-DOUBAO_MODEL = "doubao-1-5-lite-32k-250115"   # 豆包模型名称
+DOUBAO_MODEL = os.environ.get("DOUBAO_MODEL", "doubao-1-5-lite-32k-250115")   # 豆包模型名称（在 .env 中配置）
 DOUBAO_BASE_URL = "https://ark.cn-beijing.volces.com"   # 豆包 API 地址
 
 # -----------------------------------------------------------------------------
-# ChatGLM（智谱AI）配置
-# 仅在 LLM_PROVIDER = "chatglm" 时生效
+# GLM（智谱AI）配置
+# 仅在 LLM_PROVIDER = "glm"（或旧名 "chatglm"）时生效
 # -----------------------------------------------------------------------------
-CHATGLM_API_KEY = os.environ.get("CHATGLM_API_KEY", "")      # ChatGLM API Key（在 .env 中配置）
-CHATGLM_MODEL = "glm-4.7"                                    # ChatGLM 模型名称
-CHATGLM_BASE_URL = "https://open.bigmodel.cn/api/paas/v4"   # ChatGLM 接口地址
+CHATGLM_API_KEY = os.environ.get("CHATGLM_API_KEY", "")      # GLM API Key（在 .env 中配置）
+CHATGLM_MODEL = os.environ.get("CHATGLM_MODEL", "glm-5.1")   # GLM 模型名称（在 .env 中配置）
+CHATGLM_BASE_URL = "https://open.bigmodel.cn/api/paas/v4"   # GLM 接口地址
 CHATGLM_ENABLE_THINKING = False                               # 是否启用 glm-4.7 thinking 模式
+
+# -----------------------------------------------------------------------------
+# DeepSeek（深度求索）配置
+# 仅在 LLM_PROVIDER = "deepseek" 时生效
+# -----------------------------------------------------------------------------
+DEEPSEEK_API_KEY = os.environ.get("DEEPSEEK_API_KEY", "")                          # DeepSeek API Key（在 .env 中配置）
+DEEPSEEK_MODEL = os.environ.get("DEEPSEEK_MODEL", "deepseek-flash")                # DeepSeek 模型名称（deepseek-flash 即 DeepSeek-V4.1-Flash）
+DEEPSEEK_BASE_URL = os.environ.get("DEEPSEEK_BASE_URL", "https://api.deepseek.com")  # DeepSeek API 地址
+DEEPSEEK_ENABLE_THINKING = os.environ.get("DEEPSEEK_ENABLE_THINKING", "False").lower() in ("1", "true", "yes")  # 是否启用 thinking（默认关闭，翻译/分类任务建议关闭）
 
 # =============================================================================
 # LLM 请求通用参数（对所有任务生效）
@@ -93,7 +103,7 @@ MAX_WORKERS = 4       # 论文处理并发线程数
 # ArXiv 客户端参数（一般无需修改）
 ARXIV_QUERY = "cat:cs.CV"    # ArXiv 搜索类别
 ARXIV_PAGE_SIZE = 100        # 每页返回数量
-ARXIV_DELAY_SECONDS = 0.5    # 请求间隔（秒）
+ARXIV_DELAY_SECONDS = 3.0    # 请求间隔（秒），arXiv 官方要求 >=3 秒，过快会被限流返回 HTTP 406
 ARXIV_NUM_RETRIES = 5        # 失败重试次数
 ARXIV_BATCH_SIZE = 10        # 每批处理论文数
 MAX_AUTHORS_SHOWN = 8        # 每篇论文展示的作者数量上限
